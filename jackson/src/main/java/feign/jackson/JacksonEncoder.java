@@ -50,14 +50,14 @@ public class JacksonEncoder implements Encoder {
     try {
       JavaType javaType = mapper.getTypeFactory().constructType(bodyType);
 
-      String bodyText = mapper.writer().writeValueAsString( object ) ;
+//      String bodyText = mapper.writer().writeValueAsString( object ) ;
+//
+//      System.out.println( "body="+bodyText );
+//
+//      // todo 修改了生成body的方式
+//      template.body( bodyText ) ;
 
-      System.out.println( "body="+bodyText );
-
-      // todo 修改了生成body的方式
-      template.body( bodyText ) ;
-
-//      template.body(mapper.writerFor(javaType).writeValueAsBytes(object), Util.UTF_8);
+      template.body(mapper.writerFor(javaType).writeValueAsBytes(object), Util.UTF_8);
     } catch (JsonProcessingException e) {
       throw new EncodeException(e.getMessage(), e);
     }

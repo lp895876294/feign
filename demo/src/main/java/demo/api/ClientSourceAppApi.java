@@ -19,7 +19,7 @@ public interface ClientSourceAppApi {
                                    @HeaderMap Map<String,String> headerMap) ;
 
     @RequestLine("POST {uri}")
-    Response executePostJsonRequest( @Param("uri") String uri , Map<String,Object> queryParam ,
+    Response executePostJsonRequest( @Param("uri") String uri , Object queryParam ,
                                @HeaderMap Map<String,String> headerMap) ;
 
     @RequestLine("POST {uri}")

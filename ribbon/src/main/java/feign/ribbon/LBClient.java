@@ -72,6 +72,7 @@ public final class LBClient extends
   @Override
   public RibbonResponse execute(RibbonRequest request, IClientConfig configOverride)
       throws IOException, ClientException {
+    // 此处的request是经过替换Uri之后的对象，与外部调用的不同
     Request.Options options;
     if (configOverride != null) {
       options =
@@ -82,11 +83,14 @@ public final class LBClient extends
     } else {
       options = new Request.Options(connectTimeout, readTimeout);
     }
+    // 以feign接口对象的方式发起实际请求
     Response response = request.client().execute(request.toRequest(), options);
+    // 判断是否是ribbon可发起重试的请求，如果是则在ribbon中发起请求
     if (retryableStatusCodes.contains(response.status())) {
       response.close();
       throw new ClientException(ClientException.ErrorType.SERVER_THROTTLED);
     }
+    // 返回ribbion的响应对象
     return new RibbonResponse(request.getUri(), response);
   }
 

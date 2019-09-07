@@ -30,9 +30,12 @@ public interface LBClientFactory {
   public static final class Default implements LBClientFactory {
     @Override
     public LBClient create(String clientName) {
+      // 根据负载均衡客户端获取配置信息
       IClientConfig config =
           ClientFactory.getNamedConfig(clientName, DisableAutoRetriesByDefaultClientConfig.class);
+      // 通过反射机制创建负载均衡对象
       ILoadBalancer lb = ClientFactory.getNamedLoadBalancer(clientName);
+      // 创建负载均衡客户端
       return LBClient.create(lb, config);
     }
   }

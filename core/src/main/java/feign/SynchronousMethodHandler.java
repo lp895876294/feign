@@ -113,6 +113,7 @@ final class SynchronousMethodHandler implements MethodHandler {
       if (logLevel != Logger.Level.NONE) {
         logger.logIOException(metadata.configKey(), logLevel, e, elapsedTime(start));
       }
+      // 请求没有正常结束，拦截其中的IO异常信息，连接不上进行重试
       throw errorExecuting(request, e);
     }
     long elapsedTime = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);

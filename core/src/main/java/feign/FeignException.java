@@ -208,6 +208,7 @@ public class FeignException extends RuntimeException {
   }
 
   static FeignException errorExecuting(Request request, IOException cause) {
+    // 执行错误，是可以执行重试的异常类型
     return new RetryableException(
         -1,
         format("%s executing %s %s", cause.getMessage(), request.httpMethod(), request.url()),

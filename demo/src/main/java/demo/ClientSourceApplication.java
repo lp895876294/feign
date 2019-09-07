@@ -13,6 +13,7 @@ import feign.hystrix.HystrixFeign;
 import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import demo.log.ConsoleLogger;
+import feign.okhttp.OkHttpClient;
 import feign.ribbon.LBClient;
 import feign.ribbon.LBClientFactory;
 import feign.ribbon.RibbonClient;
@@ -65,27 +66,30 @@ public class ClientSourceApplication {
     @Test
     public void executePostJsonRequest() throws IOException {
 
-        ClientSourceAppApi clientSourceAppApi = Feign.builder()
-                .logger( new ConsoleLogger() )
-                .logLevel( Logger.Level.FULL )
-                .encoder( new JacksonEncoder() )
-                .decoder( new StringDecoder() )
-                .target( ClientSourceAppApi.class , "http://dyjy.dtdjzx.gov.cn" ) ;
+        for (int i = 0 ;i< 200;i++){
+            ClientSourceAppApi clientSourceAppApi = Feign.builder()
+                    .logger( new ConsoleLogger() )
+                    .logLevel( Logger.Level.FULL )
+                    .client( new OkHttpClient())
+                    .encoder( new JacksonEncoder() )
+                    .decoder( new StringDecoder() )
+                    .target( ClientSourceAppApi.class , "http://dyjy.dtdjzx.gov.cn" ) ;
 
-        Map<String,Object> queryParam = Maps.newHashMap() ;
-        queryParam.put("courseId", "2982960448340992") ;
-        queryParam.put("specialId", "2982776468030464") ;
+            Map<String,Object> queryParam = Maps.newHashMap() ;
+            queryParam.put("courseId", "2982960448340992") ;
+            queryParam.put("specialId", "2982776468030464") ;
 
-        Map<String,String> headerMap = Maps.newHashMap() ;
-        headerMap.put("Content-Type", "application/json") ;
-        headerMap.put("Cache-Control" , "no-cache") ;
-        headerMap.put("Connection" , "keep-alive") ;
+            Map<String,String> headerMap = Maps.newHashMap() ;
+            headerMap.put("Content-Type", "application/json") ;
+            headerMap.put("Cache-Control" , "no-cache") ;
+            headerMap.put("Connection" , "keep-alive") ;
 
-        Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails" , queryParam , headerMap ) ;
+            Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails" , queryParam , headerMap ) ;
 
-        String resultText = Util.toString( response.body().asReader() ) ;
-
-        System.out.println( StringEscapeUtils.unescapeJson( resultText ) ) ;
+//            String resultText = Util.toString( response.body().asReader() ) ;
+//
+//            System.out.println( StringEscapeUtils.unescapeJson( resultText ) ) ;
+        }
     }
 
     @Test
