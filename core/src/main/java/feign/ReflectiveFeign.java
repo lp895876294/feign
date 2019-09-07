@@ -208,6 +208,7 @@ public class ReflectiveFeign extends Feign {
         mutable.target(String.valueOf(argv[urlIndex]));
       }
       Map<String, Object> varBuilder = new LinkedHashMap<String, Object>();
+      // 初始化参数列表
       for (Entry<Integer, Collection<String>> entry : metadata.indexToName().entrySet()) {
         int i = entry.getKey();
         Object value = argv[entry.getKey()];
@@ -366,6 +367,7 @@ public class ReflectiveFeign extends Feign {
     protected RequestTemplate resolve(Object[] argv,
                                       RequestTemplate mutable,
                                       Map<String, Object> variables) {
+      // 获取body对应的参数位置上的变量值
       Object body = argv[metadata.bodyIndex()];
       checkArgument(body != null, "Body parameter %s was null", metadata.bodyIndex());
       try {

@@ -26,6 +26,7 @@
   <description>Feign makes writing java http clients easier</description>
 
   <modules>
+    <module>demo</module>
     <module>core</module>
     <module>gson</module>
     <module>httpclient</module>

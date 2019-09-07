@@ -58,12 +58,15 @@ public interface Contract {
       }
       Map<String, MethodMetadata> result = new LinkedHashMap<String, MethodMetadata>();
       for (Method method : targetType.getMethods()) {
+        // 不对Object对象内方法、静态方法 和 默认实现方法进行处理
         if (method.getDeclaringClass() == Object.class ||
             (method.getModifiers() & Modifier.STATIC) != 0 ||
             Util.isDefault(method)) {
           continue;
         }
+        // 解析方法元数据
         MethodMetadata metadata = parseAndValidateMetadata(targetType, method);
+        // 不能存在相同的类名和方法名称
         checkState(!result.containsKey(metadata.configKey()), "Overrides unsupported: %s",
             metadata.configKey());
         result.put(metadata.configKey(), metadata);
@@ -84,15 +87,19 @@ public interface Contract {
      */
     protected MethodMetadata parseAndValidateMetadata(Class<?> targetType, Method method) {
       MethodMetadata data = new MethodMetadata();
+      // 返回值类型
       data.returnType(Types.resolve(targetType, targetType, method.getGenericReturnType()));
+      // 方法调用的唯一key
       data.configKey(Feign.configKey(targetType, method));
 
+      // 只有一个接口，则解析父接口中的注解
       if (targetType.getInterfaces().length == 1) {
         processAnnotationOnClass(data, targetType.getInterfaces()[0]);
       }
+      // 解析在当前类上的注解
       processAnnotationOnClass(data, targetType);
 
-
+      // 解析在当前方法上的注解
       for (Annotation methodAnnotation : method.getAnnotations()) {
         processAnnotationOnMethod(data, methodAnnotation, method);
       }
@@ -106,12 +113,15 @@ public interface Contract {
       int count = parameterAnnotations.length;
       for (int i = 0; i < count; i++) {
         boolean isHttpAnnotation = false;
+        // 处理每一个请求参数注解
         if (parameterAnnotations[i] != null) {
           isHttpAnnotation = processAnnotationsOnParameter(data, parameterAnnotations[i], i);
         }
+        // 对于URI类型的参数，单独进行处理
         if (parameterTypes[i] == URI.class) {
           data.urlIndex(i);
         } else if (!isHttpAnnotation && parameterTypes[i] != Request.Options.class) {
+          // 请求方法中只能有一个不带注解的变量，将其作为请求body
           checkState(data.formParams().isEmpty(),
               "Body parameters cannot be used with form parameters.");
           checkState(data.bodyIndex() == null, "Method has too many Body parameters: %s", method);
@@ -247,7 +257,9 @@ public interface Contract {
           data.template().method(HttpMethod.valueOf(requestLineMatcher.group(1)));
           data.template().uri(requestLineMatcher.group(2));
         }
+        // 是否对反斜杠进行处理
         data.template().decodeSlash(RequestLine.class.cast(methodAnnotation).decodeSlash());
+        // 集合格式处理
         data.template()
             .collectionFormat(RequestLine.class.cast(methodAnnotation).collectionFormat());
 
@@ -273,6 +285,7 @@ public interface Contract {
                                                     Annotation[] annotations,
                                                     int paramIndex) {
       boolean isHttpAnnotation = false;
+      // 针对单个参数的所有注解进行处理
       for (Annotation annotation : annotations) {
         Class<? extends Annotation> annotationType = annotation.annotationType();
         if (annotationType == Param.class) {
@@ -280,13 +293,17 @@ public interface Contract {
           String name = paramAnnotation.value();
           checkState(emptyToNull(name) != null, "Param annotation was empty on param %s.",
               paramIndex);
+          // 按照数字序号添加参数名称
           nameParam(data, name, paramIndex);
+          // 存储数字序号参数对应的值
           Class<? extends Param.Expander> expander = paramAnnotation.expander();
           if (expander != Param.ToStringExpander.class) {
             data.indexToExpanderClass().put(paramIndex, expander);
           }
+          // 存储数字需要参数对应的
           data.indexToEncoded().put(paramIndex, paramAnnotation.encoded());
           isHttpAnnotation = true;
+          // todo 不清楚此处的参数名称有什么用途
           if (!data.template().hasRequestVariable(name)) {
             data.formParams().add(name);
           }

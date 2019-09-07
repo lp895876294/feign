@@ -154,6 +154,7 @@ public final class RequestTemplate implements Serializable {
       this.uriTemplate = UriTemplate.create("", !this.decodeSlash, this.charset);
     }
 
+    // 解析URL中的参数，使用RequestLine中的模板，使用Param注解的变量
     uri.append(this.uriTemplate.expand(variables));
 
     /*

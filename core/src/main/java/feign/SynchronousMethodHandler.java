@@ -72,6 +72,7 @@ final class SynchronousMethodHandler implements MethodHandler {
 
   @Override
   public Object invoke(Object[] argv) throws Throwable {
+    // 1.0 构建请求模板，包括请求URL变量、body变量、请求参数等
     RequestTemplate template = buildTemplateFromArgs.create(argv);
     Options options = findOptions(argv);
     Retryer retryer = this.retryer.clone();
@@ -167,6 +168,7 @@ final class SynchronousMethodHandler implements MethodHandler {
   }
 
   Request targetRequest(RequestTemplate template) {
+    // 对请求模板执行拦截器
     for (RequestInterceptor interceptor : requestInterceptors) {
       interceptor.apply(template);
     }

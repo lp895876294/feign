@@ -49,7 +49,15 @@ public class JacksonEncoder implements Encoder {
   public void encode(Object object, Type bodyType, RequestTemplate template) {
     try {
       JavaType javaType = mapper.getTypeFactory().constructType(bodyType);
-      template.body(mapper.writerFor(javaType).writeValueAsBytes(object), Util.UTF_8);
+
+      String bodyText = mapper.writer().writeValueAsString( object ) ;
+
+      System.out.println( "body="+bodyText );
+
+      // todo 修改了生成body的方式
+      template.body( bodyText ) ;
+
+//      template.body(mapper.writerFor(javaType).writeValueAsBytes(object), Util.UTF_8);
     } catch (JsonProcessingException e) {
       throw new EncodeException(e.getMessage(), e);
     }
