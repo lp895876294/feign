@@ -43,6 +43,9 @@ public interface LBClientFactory {
   IClientConfigKey<String> RetryableStatusCodes =
       new CommonClientConfigKey<String>("RetryableStatusCodes") {};
 
+  /**
+   * 禁止对于下一个服务器的自动重试，默认配置使用 DefaultClientConfigImpl
+   */
   final class DisableAutoRetriesByDefaultClientConfig extends DefaultClientConfigImpl {
     @Override
     public int getDefaultMaxAutoRetriesNextServer() {

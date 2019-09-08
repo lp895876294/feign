@@ -1,31 +1,50 @@
 package demo;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
-import feign.*;
+import com.netflix.client.config.CommonClientConfigKey;
+import com.netflix.client.config.DefaultClientConfigImpl;
+import com.netflix.client.config.IClientConfigKey;
+import com.netflix.config.ConfigurationManager;
+import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import demo.api.ClientSourceAppApi;
-import feign.codec.StringDecoder;
-import feign.form.ContentType;
-import feign.form.FormEncoder;
-import feign.hystrix.HystrixFeign;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
 import demo.log.ConsoleLogger;
+import demo.stats.AppLoadBalancerStats;
+import feign.Feign;
+import feign.Logger;
+import feign.Response;
+import feign.Util;
+import feign.codec.StringDecoder;
+import feign.form.FormEncoder;
+import feign.jackson.JacksonEncoder;
 import feign.okhttp.OkHttpClient;
-import feign.ribbon.LBClient;
-import feign.ribbon.LBClientFactory;
 import feign.ribbon.RibbonClient;
-import feign.slf4j.Slf4jLogger;
+import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Map;
 
 public class ClientSourceApplication {
+
+    public static final int executeNum = 1 ;
+
+    static {
+        // 覆盖ribbon默认的配置属性
+        Map<IClientConfigKey,String> ribbonDefaultProperties = Maps.newHashMap() ;
+        ribbonDefaultProperties.put(CommonClientConfigKey.NFLoadBalancerStatsClassName , AppLoadBalancerStats.class.getName() ) ;
+        // 默认的负责均衡类，默认使用 DynamicServerListLoadBalancer
+        ribbonDefaultProperties.put(CommonClientConfigKey.NFLoadBalancerClassName , DynamicServerListLoadBalancer.class.getName() ) ;
+
+        for (Map.Entry<IClientConfigKey, String> entry : ribbonDefaultProperties.entrySet()) {
+            // 设置配置的key
+            String configKey = DefaultClientConfigImpl.DEFAULT_PROPERTY_NAME_SPACE + "." + entry.getKey().key() ;
+            System.setProperty( configKey , entry.getValue() ) ;
+
+            System.out.println( configKey + " = " + entry.getValue() );
+        }
+
+    }
 
 //    @Test
 //    public void queryApp() {
@@ -66,29 +85,71 @@ public class ClientSourceApplication {
     @Test
     public void executePostJsonRequest() throws IOException {
 
-        for (int i = 0 ;i< 200;i++){
+        for (int i = 0; i < executeNum; i++) {
             ClientSourceAppApi clientSourceAppApi = Feign.builder()
-                    .logger( new ConsoleLogger() )
-                    .logLevel( Logger.Level.FULL )
-                    .client( new OkHttpClient())
-                    .encoder( new JacksonEncoder() )
-                    .decoder( new StringDecoder() )
-                    .target( ClientSourceAppApi.class , "http://dyjy.dtdjzx.gov.cn" ) ;
+                    .logger(new ConsoleLogger())
+                    .logLevel(Logger.Level.FULL)
+                    .client(new OkHttpClient())
+                    .encoder(new JacksonEncoder())
+                    .decoder(new StringDecoder())
+                    .target(ClientSourceAppApi.class, "http://dyjy.dtdjzx.gov.cn");
 
-            Map<String,Object> queryParam = Maps.newHashMap() ;
-            queryParam.put("courseId", "2982960448340992") ;
-            queryParam.put("specialId", "2982776468030464") ;
+            Map<String, Object> queryParam = Maps.newHashMap();
+            queryParam.put("courseId", "2982960448340992");
+            queryParam.put("specialId", "2982776468030464");
 
-            Map<String,String> headerMap = Maps.newHashMap() ;
-            headerMap.put("Content-Type", "application/json") ;
-            headerMap.put("Cache-Control" , "no-cache") ;
-            headerMap.put("Connection" , "keep-alive") ;
+            Map<String, String> headerMap = Maps.newHashMap();
+            headerMap.put("Content-Type", "application/json");
+            headerMap.put("Cache-Control", "no-cache");
+            headerMap.put("Connection", "keep-alive");
 
-            Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails" , queryParam , headerMap ) ;
+            Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails", queryParam, headerMap);
 
-//            String resultText = Util.toString( response.body().asReader() ) ;
+            String resultText = Util.toString(response.body().asReader());
+
+            System.out.println(StringEscapeUtils.unescapeJson(resultText));
+        }
+    }
+
+    @Test
+    public void ribbonExecutePostJsonRequest() throws IOException {
+        String ribbionName = "dyjy";
+
+        String listServersProperty = ribbionName + ".ribbon.listOfServers";
+
+        // ribbon全局配置属性，可以使用全局的配置文件
+        // 设置ribbon连接的服务端地址列表，配置属性的加载接口使用commons-configuration配置
+        AbstractConfiguration abstractConfiguration = ConfigurationManager.getConfigInstance();
+        abstractConfiguration.setProperty( listServersProperty, "dyjy.dtdjzx.gov.cn");
+//        abstractConfiguration.setProperty( listServersProperty , "10.254.23.134:6311,10.254.23.135:6311,10.254.23.136:6311,10.254.23.137:6311" ) ;
+
+        for (int i = 0; i < executeNum; i++) {
+
+            RibbonClient ribbonClient = RibbonClient.builder().delegate(new OkHttpClient()).build();
+
+            ClientSourceAppApi clientSourceAppApi = Feign.builder()
+                    .logger(new ConsoleLogger())
+                    .logLevel(Logger.Level.FULL)
+                    .client(ribbonClient)
+                    .encoder(new JacksonEncoder())
+                    .decoder(new StringDecoder())
+                    .target(ClientSourceAppApi.class, "http://" + ribbionName);
+
+            Map<String, Object> queryParam = Maps.newHashMap();
+            queryParam.put("courseId", "2982960448340992");
+            queryParam.put("specialId", "2982776468030464");
+
+            Map<String, String> headerMap = Maps.newHashMap();
+            headerMap.put("Content-Type", "application/json");
+            headerMap.put("Cache-Control", "no-cache");
+            headerMap.put("Connection", "keep-alive");
+
+            Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails", queryParam, headerMap);
+
+//        String resultText = Util.toString( response.body().asReader() ) ;
 //
-//            System.out.println( StringEscapeUtils.unescapeJson( resultText ) ) ;
+//        System.out.println( StringEscapeUtils.unescapeJson( resultText ) ) ;
+
         }
     }
 
@@ -96,21 +157,21 @@ public class ClientSourceApplication {
     public void executePostFormRequest() {
 
         ClientSourceAppApi clientSourceAppApi = Feign.builder()
-                .logger( new ConsoleLogger() )
-                .logLevel( Logger.Level.FULL )
+                .logger(new ConsoleLogger())
+                .logLevel(Logger.Level.FULL)
                 .encoder(new FormEncoder())
-                .decoder( new StringDecoder() )
-                .target( ClientSourceAppApi.class , "http://localhost:8081" ) ;
+                .decoder(new StringDecoder())
+                .target(ClientSourceAppApi.class, "http://localhost:8081");
 
-        Map<String,Object> queryParam = Maps.newHashMap() ;
-        queryParam.put("name" , "post");
+        Map<String, Object> queryParam = Maps.newHashMap();
+        queryParam.put("name", "post");
 
-        Map<String,String> headerMap = Maps.newHashMap() ;
-        headerMap.put("Content-Type", "application/x-www-form-urlencoded") ;
-        headerMap.put("Cache-Control" , "no-cache") ;
-        headerMap.put("Connection" , "keep-alive") ;
+        Map<String, String> headerMap = Maps.newHashMap();
+        headerMap.put("Content-Type", "application/x-www-form-urlencoded");
+        headerMap.put("Cache-Control", "no-cache");
+        headerMap.put("Connection", "keep-alive");
 
-        Response result = clientSourceAppApi.executePostFormRequest("/api/client/list" , queryParam , headerMap );
+        Response result = clientSourceAppApi.executePostFormRequest("/api/client/list", queryParam, headerMap);
 
 //        result = StringEscapeUtils.unescapeJson( result ) ;
 //

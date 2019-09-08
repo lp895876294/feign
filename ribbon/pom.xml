@@ -62,5 +62,11 @@
       <artifactId>mockwebserver</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>commons-configuration</groupId>
+      <artifactId>commons-configuration</artifactId>
+      <version>1.8</version>
+    </dependency>
   </dependencies>
 </project>
