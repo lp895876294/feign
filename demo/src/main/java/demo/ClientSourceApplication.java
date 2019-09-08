@@ -27,7 +27,7 @@ import java.util.Map;
 
 public class ClientSourceApplication {
 
-    public static final int executeNum = 1 ;
+    public static final int executeNum = 100 ;
 
     static {
         // 覆盖ribbon默认的配置属性
@@ -120,7 +120,7 @@ public class ClientSourceApplication {
         // ribbon全局配置属性，可以使用全局的配置文件
         // 设置ribbon连接的服务端地址列表，配置属性的加载接口使用commons-configuration配置
         AbstractConfiguration abstractConfiguration = ConfigurationManager.getConfigInstance();
-        abstractConfiguration.setProperty( listServersProperty, "dyjy.dtdjzx.gov.cn");
+        abstractConfiguration.setProperty( listServersProperty, "localhost,dyjy.dtdjzx.gov.cn");
 //        abstractConfiguration.setProperty( listServersProperty , "10.254.23.134:6311,10.254.23.135:6311,10.254.23.136:6311,10.254.23.137:6311" ) ;
 
         for (int i = 0; i < executeNum; i++) {
@@ -144,7 +144,12 @@ public class ClientSourceApplication {
             headerMap.put("Cache-Control", "no-cache");
             headerMap.put("Connection", "keep-alive");
 
-            Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails", queryParam, headerMap);
+            try{
+                Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails", queryParam, headerMap);
+            }catch( Exception e ){
+                System.out.println("异常");
+                e.printStackTrace();
+            }
 
 //        String resultText = Util.toString( response.body().asReader() ) ;
 //
