@@ -146,20 +146,20 @@ public class ClientSourceApplication {
 
             try{
                 Response response = clientSourceAppApi.executePostJsonRequest("/bintang/findCourseDetails", queryParam, headerMap);
+
+                String resultText = Util.toString( response.body().asReader() ) ;
+
+                System.out.println( StringEscapeUtils.unescapeJson( resultText ) ) ;
             }catch( Exception e ){
                 System.out.println("异常");
                 e.printStackTrace();
             }
 
-//        String resultText = Util.toString( response.body().asReader() ) ;
-//
-//        System.out.println( StringEscapeUtils.unescapeJson( resultText ) ) ;
-
         }
     }
 
     @Test
-    public void executePostFormRequest() {
+    public void executePostFormRequest() throws IOException {
 
         ClientSourceAppApi clientSourceAppApi = Feign.builder()
                 .logger(new ConsoleLogger())
@@ -176,42 +176,14 @@ public class ClientSourceApplication {
         headerMap.put("Cache-Control", "no-cache");
         headerMap.put("Connection", "keep-alive");
 
-        Response result = clientSourceAppApi.executePostFormRequest("/api/client/list", queryParam, headerMap);
+        Response response = clientSourceAppApi.executePostFormRequest("/api/client/list", queryParam, headerMap);
 
-//        result = StringEscapeUtils.unescapeJson( result ) ;
-//
-//        System.out.println( result );
+        String resultText = Util.toString( response.body().asReader() ) ;
+
+        System.out.println( StringEscapeUtils.unescapeJson( resultText ) ) ;
+
     }
 
-//    @Test
-//    public void executeRibbon() {
-//
-////        RibbonClient.builder().lbClientFactory(new LBClientFactory() {
-////            @Override
-////            public LBClient create(String clientName) {
-////                return null;
-////            }
-////        })
-//
-//        ClientSourceAppApi clientSourceAppApi = Feign.builder()
-////                .client(RibbonClient.create())
-//                .encoder(new FormEncoder())
-//                .decoder(new StringDecoder())
-//                .target( ClientSourceAppApi.class , "http://localhost:8081/" );
-//
-//        Map<String,Object> queryParam = Maps.newHashMap() ;
-//        queryParam.put("name", "测试-POST") ;
-//
-//        Map<String,String> headerMap = Maps.newHashMap() ;
-//        headerMap.put("Content-Type", "application/x-www-form-urlencoded") ;
-//
-//        String result = clientSourceAppApi.executePostRequest( "/api/client/list" , queryParam , headerMap );
-//
-//        result = StringEscapeUtils.unescapeJson( result ) ;
-//
-//        System.out.println( result );
-//    }
-//
 //    @Test
 //    public void executeHystrix() {
 //
