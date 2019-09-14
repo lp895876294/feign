@@ -24,6 +24,7 @@ import feign.hystrix.SetterFactory;
 import feign.jackson.JacksonEncoder;
 import feign.okhttp.OkHttpClient;
 import feign.ribbon.RibbonClient;
+import okhttp3.ConnectionPool;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
@@ -33,6 +34,7 @@ import rx.Subscriber;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientSourceApplication {
@@ -182,33 +184,37 @@ public class ClientSourceApplication {
         // ribbon全局配置属性，可以使用全局的配置文件
         // 设置ribbon连接的服务端地址列表，配置属性的加载接口使用commons-configuration配置
         AbstractConfiguration abstractConfiguration = ConfigurationManager.getConfigInstance();
-//        abstractConfiguration.setProperty( listServersProperty, "dyjy.dtdjzx.gov.cn");
+        abstractConfiguration.setProperty( listServersProperty, "dyjy.dtdjzx.gov.cn");
 //        abstractConfiguration.setProperty( listServersProperty, "localhost,dyjy.dtdjzx.gov.cn");
 //        abstractConfiguration.setProperty( listServersProperty , "10.254.23.134:6311,10.254.23.135:6311,10.254.23.136:6311,10.254.23.137:6311" ) ;
-        abstractConfiguration.setProperty( listServersProperty , "10.254.23.41:6310" ) ;
+//        abstractConfiguration.setProperty( listServersProperty , "10.254.23.41:6310" ) ;
 
         // 使用系统属性加载配置
         System.setProperty("hystrix.plugin."+HystrixDynamicProperties.class.getSimpleName() +".implementation" ,
                 HystrixDynamicPropertiesSystemProperties.class.getName()) ;
 
         System.setProperty("hystrix.threadpool.default.allowMaximumSizeToDivergeFromCoreSize" , "true") ;
-        System.setProperty("hystrix.threadpool.default.coreSize" , "100") ;
-        System.setProperty("hystrix.threadpool.default.maximumSize" , "150") ;
+        System.setProperty("hystrix.threadpool.default.coreSize" , "200") ;
+        System.setProperty("hystrix.threadpool.default.maximumSize" , "200") ;
         System.setProperty("hystrix.threadpool.default.maxQueueSize" , "100000") ;
         System.setProperty("hystrix.threadpool.default.queueSizeRejectionThreshold" , "100000") ;
 //        System.setProperty("hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds" , "10000") ;
         System.setProperty("hystrix.command.default.execution.timeout.enabled" , "false") ;
 
-//        ConnectionPool pool = new ConnectionPool(200, 10000, TimeUnit.MILLISECONDS);
-//
-//        okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient.Builder()
-//                .connectionPool( pool )
-//                .build() ;
+        ConnectionPool pool = new ConnectionPool(500, 5, TimeUnit.MINUTES);
+
+        okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient.Builder()
+                .connectionPool( pool )
+                .build() ;
 
         //使用单例连接客户端
-        OkHttpClient feignHttpClient = new OkHttpClient(  ) ;
+        OkHttpClient feignHttpClient = new OkHttpClient( okHttpClient ) ;
 
-        RibbonClient ribbonClient = RibbonClient.builder().delegate( feignHttpClient ).build();
+        RibbonClient ribbonClient = RibbonClient.builder()
+                .delegate( feignHttpClient )
+                .build() ;
+
+        Long startTime = System.currentTimeMillis() ;
 
         for (int i = 0; i < executeNum; i++) {
 
@@ -257,6 +263,9 @@ public class ClientSourceApplication {
                     @Override
                     public void onCompleted() {
                         System.out.println("complete============" + num.incrementAndGet());
+                        if( num.get() >= executeNum - 1 ){
+                            System.out.println( "耗时: " + ( (System.currentTimeMillis() - startTime)/1000 ) +"s ");
+                        }
                     }
 
                     @Override
