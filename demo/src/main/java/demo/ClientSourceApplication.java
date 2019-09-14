@@ -5,29 +5,41 @@ import com.netflix.client.config.CommonClientConfigKey;
 import com.netflix.client.config.DefaultClientConfigImpl;
 import com.netflix.client.config.IClientConfigKey;
 import com.netflix.config.ConfigurationManager;
+import com.netflix.hystrix.HystrixCommand;
+import com.netflix.hystrix.HystrixCommandGroupKey;
+import com.netflix.hystrix.HystrixCommandKey;
+import com.netflix.hystrix.strategy.properties.HystrixDynamicProperties;
+import com.netflix.hystrix.strategy.properties.HystrixDynamicPropertiesSystemProperties;
 import com.netflix.loadbalancer.DynamicServerListLoadBalancer;
 import demo.api.ClientSourceAppApi;
+import demo.api.ClientSourceAppApiImpl;
 import demo.log.ConsoleLogger;
 import demo.stats.AppLoadBalancerStats;
-import feign.Feign;
-import feign.Logger;
-import feign.Response;
-import feign.Util;
+import feign.*;
 import feign.codec.StringDecoder;
 import feign.form.FormEncoder;
+import feign.hystrix.FallbackFactory;
+import feign.hystrix.HystrixFeign;
+import feign.hystrix.SetterFactory;
 import feign.jackson.JacksonEncoder;
 import feign.okhttp.OkHttpClient;
 import feign.ribbon.RibbonClient;
 import org.apache.commons.configuration.AbstractConfiguration;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Test;
+import rx.Observable;
+import rx.Subscriber;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientSourceApplication {
 
-    public static final int executeNum = 100 ;
+    public static final int executeNum = 100000 ;
+
+    public static volatile AtomicInteger num = new AtomicInteger(0) ;
 
     static {
         // 覆盖ribbon默认的配置属性
@@ -120,7 +132,8 @@ public class ClientSourceApplication {
         // ribbon全局配置属性，可以使用全局的配置文件
         // 设置ribbon连接的服务端地址列表，配置属性的加载接口使用commons-configuration配置
         AbstractConfiguration abstractConfiguration = ConfigurationManager.getConfigInstance();
-        abstractConfiguration.setProperty( listServersProperty, "localhost,dyjy.dtdjzx.gov.cn");
+        abstractConfiguration.setProperty( listServersProperty, "dyjy.dtdjzx.gov.cn");
+//        abstractConfiguration.setProperty( listServersProperty, "localhost,dyjy.dtdjzx.gov.cn");
 //        abstractConfiguration.setProperty( listServersProperty , "10.254.23.134:6311,10.254.23.135:6311,10.254.23.136:6311,10.254.23.137:6311" ) ;
 
         for (int i = 0; i < executeNum; i++) {
@@ -155,6 +168,125 @@ public class ClientSourceApplication {
                 e.printStackTrace();
             }
 
+        }
+    }
+
+    private static AtomicInteger atomicInteger = new AtomicInteger(0) ;
+
+    @Test
+    public void hystrixRibbonExecutePostJsonRequest() throws IOException {
+        String ribbionName = "dyjy";
+
+        String listServersProperty = ribbionName + ".ribbon.listOfServers";
+
+        // ribbon全局配置属性，可以使用全局的配置文件
+        // 设置ribbon连接的服务端地址列表，配置属性的加载接口使用commons-configuration配置
+        AbstractConfiguration abstractConfiguration = ConfigurationManager.getConfigInstance();
+//        abstractConfiguration.setProperty( listServersProperty, "dyjy.dtdjzx.gov.cn");
+//        abstractConfiguration.setProperty( listServersProperty, "localhost,dyjy.dtdjzx.gov.cn");
+//        abstractConfiguration.setProperty( listServersProperty , "10.254.23.134:6311,10.254.23.135:6311,10.254.23.136:6311,10.254.23.137:6311" ) ;
+        abstractConfiguration.setProperty( listServersProperty , "10.254.23.41:6310" ) ;
+
+        // 使用系统属性加载配置
+        System.setProperty("hystrix.plugin."+HystrixDynamicProperties.class.getSimpleName() +".implementation" ,
+                HystrixDynamicPropertiesSystemProperties.class.getName()) ;
+
+        System.setProperty("hystrix.threadpool.default.allowMaximumSizeToDivergeFromCoreSize" , "true") ;
+        System.setProperty("hystrix.threadpool.default.coreSize" , "100") ;
+        System.setProperty("hystrix.threadpool.default.maximumSize" , "150") ;
+        System.setProperty("hystrix.threadpool.default.maxQueueSize" , "100000") ;
+        System.setProperty("hystrix.threadpool.default.queueSizeRejectionThreshold" , "100000") ;
+//        System.setProperty("hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds" , "10000") ;
+        System.setProperty("hystrix.command.default.execution.timeout.enabled" , "false") ;
+
+//        ConnectionPool pool = new ConnectionPool(200, 10000, TimeUnit.MILLISECONDS);
+//
+//        okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient.Builder()
+//                .connectionPool( pool )
+//                .build() ;
+
+        //使用单例连接客户端
+        OkHttpClient feignHttpClient = new OkHttpClient(  ) ;
+
+        RibbonClient ribbonClient = RibbonClient.builder().delegate( feignHttpClient ).build();
+
+        for (int i = 0; i < executeNum; i++) {
+
+            ClientSourceAppApi clientSourceAppApi = HystrixFeign.builder()
+                    .options( new Request.Options(10 * 1000, 0) )
+                    .logger(new ConsoleLogger())
+                    .logLevel(Logger.Level.FULL)
+                    .client(ribbonClient)
+                    .encoder(new JacksonEncoder())
+                    .decoder(new StringDecoder())
+                    .setterFactory(new SetterFactory() {
+                        @Override
+                        public HystrixCommand.Setter create(Target<?> target, Method method) {
+
+//                            System.out.println( "target.url() = " + target.url() );
+
+                            return HystrixCommand.Setter
+                                    .withGroupKey(HystrixCommandGroupKey.Factory.asKey("testgroup"))
+                                    .andCommandKey(HystrixCommandKey.Factory.asKey("testkey"));
+                        }
+                    })
+                    .target(new AppTarget<ClientSourceAppApi>("dtdj", ClientSourceAppApi.class, "http://" + ribbionName),
+                            new FallbackFactory<ClientSourceAppApi>() {
+                                @Override
+                                public ClientSourceAppApi create(Throwable cause) {
+                                    System.out.println("exception -> " + cause.getMessage()) ;
+                                    return new ClientSourceAppApiImpl() ;
+                                }
+                            }) ;
+
+            Map<String, Object> queryParam = Maps.newHashMap();
+            queryParam.put("courseId", "2982960448340992");
+            queryParam.put("specialId", "2982776468030464");
+
+            Map<String, String> headerMap = Maps.newHashMap();
+            headerMap.put("Content-Type", "application/json");
+            headerMap.put("Cache-Control", "no-cache");
+            headerMap.put("Connection", "keep-alive");
+
+            try{
+
+                Observable<Response> observable = clientSourceAppApi.executeHystrixPostJsonRequest(
+                        "/bintang/findCourseDetails", queryParam, headerMap ) ;
+
+                observable.subscribe(new Subscriber<Response>() {
+                    @Override
+                    public void onCompleted() {
+                        System.out.println("complete============" + num.incrementAndGet());
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        e.printStackTrace();
+                    }
+
+                    @Override
+                    public void onNext(Response response) {
+                        String resultText = null;
+                        try {
+                            resultText = Util.toString( response.body().asReader() );
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+//                        System.out.println( resultText );
+                    }
+                }) ;
+            }catch( Exception e ){
+                System.out.println("异常");
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println( "after submit" );
+
+        try {
+            Thread.currentThread().join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 

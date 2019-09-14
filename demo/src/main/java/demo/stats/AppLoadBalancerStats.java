@@ -28,7 +28,7 @@ public class AppLoadBalancerStats extends LoadBalancerStats {
                 for (Map.Entry<Server, ServerStats> statsEntry : serverStatsMap.entrySet()) {
                     Server server = statsEntry.getKey() ;
                     ServerStats serverStats = statsEntry.getValue() ;
-                    System.out.println( server.getHostPort() + "   " + serverStats.toString() );
+//                    System.out.println( server.getHostPort() + "   " + serverStats.toString() );
                 }
             }
         } , 1000 , 1000 );

@@ -1,8 +1,8 @@
 package demo.api;
 
 import feign.*;
+import rx.Observable;
 
-import java.net.URI;
 import java.util.Map;
 
 public interface ClientSourceAppApi {
@@ -21,6 +21,10 @@ public interface ClientSourceAppApi {
     @RequestLine("POST {uri}")
     Response executePostJsonRequest( @Param("uri") String uri , Object queryParam ,
                                @HeaderMap Map<String,String> headerMap) ;
+
+    @RequestLine("POST {uri}")
+    Observable<Response> executeHystrixPostJsonRequest(@Param("uri") String uri , Object queryParam ,
+                                             @HeaderMap Map<String,String> headerMap) ;
 
     @RequestLine("POST {uri}")
     Response executePostFormRequest( @Param("uri") String uri , @QueryMap Map<String,Object> queryParam ,

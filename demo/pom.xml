@@ -44,6 +44,12 @@
     <dependency>
       <groupId>io.github.openfeign</groupId>
       <artifactId>feign-ribbon</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>rxjava</artifactId>
+          <groupId>io.reactivex</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
