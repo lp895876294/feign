@@ -13,15 +13,17 @@
  */
 package feign;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 import feign.InvocationHandlerFactory.MethodHandler;
 import feign.Request.Options;
 import feign.codec.DecodeException;
 import feign.codec.Decoder;
 import feign.codec.ErrorDecoder;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
+
 import static feign.ExceptionPropagationPolicy.UNWRAP;
 import static feign.FeignException.errorExecuting;
 import static feign.FeignException.errorReading;
@@ -99,6 +101,7 @@ final class SynchronousMethodHandler implements MethodHandler {
   }
 
   Object executeAndDecode(RequestTemplate template, Options options) throws Throwable {
+
     Request request = targetRequest(template);
 
     if (logLevel != Logger.Level.NONE) {
@@ -121,9 +124,11 @@ final class SynchronousMethodHandler implements MethodHandler {
     boolean shouldClose = true;
     try {
       if (logLevel != Logger.Level.NONE) {
+        // 日志记录响应时间
         response =
             logger.logAndRebufferResponse(metadata.configKey(), logLevel, response, elapsedTime);
       }
+      // 返回对象为Response
       if (Response.class == metadata.returnType()) {
         if (response.body() == null) {
           return response;
@@ -137,10 +142,12 @@ final class SynchronousMethodHandler implements MethodHandler {
         byte[] bodyData = Util.toByteArray(response.body().asInputStream());
         return response.toBuilder().body(bodyData).build();
       }
+      // 返回对象为普通对象
       if (response.status() >= 200 && response.status() < 300) {
         if (void.class == metadata.returnType()) {
           return null;
         } else {
+          // 使用decoder对对象进行转码
           Object result = decode(response);
           shouldClose = closeAfterDecode;
           return result;
@@ -173,6 +180,7 @@ final class SynchronousMethodHandler implements MethodHandler {
     for (RequestInterceptor interceptor : requestInterceptors) {
       interceptor.apply(template);
     }
+    // 使用target创建Request对象
     return target.apply(template);
   }
 

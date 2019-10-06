@@ -15,7 +15,7 @@ public interface ClientSourceAppApi {
 //    String executeGetRequest( @Param("uri") String uri , @QueryMap Map<String,Object> queryParam , @HeaderMap Map<String,String> headerMap) ;
 
     @RequestLine("GET {uri}")
-    String executeGetRequest( @Param("uri") String uri , @QueryMap Map<String,Object> queryParam ,
+    String executeGetRequest( @Param("uri") String uri , @QueryMap Object queryParam ,
                                    @HeaderMap Map<String,String> headerMap) ;
 
     @RequestLine("POST {uri}")

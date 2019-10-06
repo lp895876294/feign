@@ -11,7 +11,7 @@ import java.util.Map;
 public class ClientSourceAppApiImpl implements ClientSourceAppApi {
 
     @Override
-    public String executeGetRequest(String uri, Map<String, Object> queryParam, Map<String, String> headerMap) {
+    public String executeGetRequest(String uri, Object queryParam, Map<String, String> headerMap) {
         return null;
     }
 

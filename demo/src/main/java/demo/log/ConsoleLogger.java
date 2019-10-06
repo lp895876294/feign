@@ -16,8 +16,8 @@ public class ConsoleLogger extends Logger {
 
     @Override
     protected void logRequest(String configKey, Level logLevel, Request request) {
-//        System.out.println( atomicInteger.incrementAndGet()+". request -> " + configKey );
-//        super.logRequest( configKey , logLevel , request );
+        System.out.println( atomicInteger.incrementAndGet()+". request -> " + configKey );
+        super.logRequest( configKey , logLevel , request );
     }
 
     @Override

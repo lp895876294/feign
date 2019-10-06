@@ -13,12 +13,6 @@
  */
 package feign;
 
-import feign.template.UriUtils;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.*;
-import java.util.Map.Entry;
 import feign.InvocationHandlerFactory.MethodHandler;
 import feign.Param.Expander;
 import feign.Request.Options;
@@ -26,6 +20,14 @@ import feign.codec.Decoder;
 import feign.codec.EncodeException;
 import feign.codec.Encoder;
 import feign.codec.ErrorDecoder;
+import feign.template.UriUtils;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.*;
+import java.util.Map.Entry;
+
 import static feign.Util.checkArgument;
 import static feign.Util.checkNotNull;
 
@@ -49,6 +51,7 @@ public class ReflectiveFeign extends Feign {
   @SuppressWarnings("unchecked")
   @Override
   public <T> T newInstance(Target<T> target) {
+    // 存储方法key 和 方式处理的映射
     Map<String, MethodHandler> nameToHandler = targetToHandlersByName.apply(target);
     Map<Method, MethodHandler> methodToHandler = new LinkedHashMap<Method, MethodHandler>();
     List<DefaultMethodHandler> defaultMethodHandlers = new LinkedList<DefaultMethodHandler>();
@@ -64,7 +67,11 @@ public class ReflectiveFeign extends Feign {
         methodToHandler.put(method, nameToHandler.get(Feign.configKey(target.type(), method)));
       }
     }
+
+    // 创建代理对象
     InvocationHandler handler = factory.create(target, methodToHandler);
+
+    // 创建动态代理
     T proxy = (T) Proxy.newProxyInstance(target.type().getClassLoader(),
         new Class<?>[] {target.type()}, handler);
 
@@ -156,8 +163,10 @@ public class ReflectiveFeign extends Feign {
       for (MethodMetadata md : metadata) {
         BuildTemplateByResolvingArgs buildTemplate;
         if (!md.formParams().isEmpty() && md.template().bodyTemplate() == null) {
+          // 1. 自定义的请求参数模板
           buildTemplate = new BuildFormEncodedTemplateFromArgs(md, encoder, queryMapEncoder);
         } else if (md.bodyIndex() != null) {
+          // 2. 使用对象参数，例如Map 或 对象等
           buildTemplate = new BuildEncodedTemplateFromArgs(md, encoder, queryMapEncoder);
         } else {
           buildTemplate = new BuildTemplateByResolvingArgs(md, queryMapEncoder);

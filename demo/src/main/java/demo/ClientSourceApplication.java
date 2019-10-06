@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientSourceApplication {
 
-    public static final int executeNum = 100000 ;
+    public static final int executeNum = 1 ;
 
     public static volatile AtomicInteger num = new AtomicInteger(0) ;
 
@@ -95,6 +95,25 @@ public class ClientSourceApplication {
 //
 //        System.out.println(JSON.toJSONString(jsonObject));
 //    }
+
+    @Test
+    public void executeGetRequest() throws IOException {
+
+        ClientSourceAppApi clientSourceAppApi = Feign.builder()
+                .logger(new ConsoleLogger())
+                .logLevel(Logger.Level.FULL)
+                .client(new OkHttpClient())
+                .encoder(new FormEncoder())
+                .decoder(new StringDecoder())
+                .target(ClientSourceAppApi.class, "http://localhost:8080");
+
+        Map<String, Object> queryParam = Maps.newHashMap();
+        queryParam.put("name", "name123");
+
+        String response = clientSourceAppApi.executeGetRequest("/api/user", queryParam, Maps.newHashMap());
+
+        System.out.println("查询结果->"+response);
+    }
 
     @Test
     public void executePostJsonRequest() throws IOException {

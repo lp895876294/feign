@@ -13,14 +13,11 @@
  */
 package feign;
 
+import feign.Param.Expander;
+
 import java.io.Serializable;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import feign.Param.Expander;
+import java.util.*;
 
 public final class MethodMetadata implements Serializable {
 
@@ -34,6 +31,7 @@ public final class MethodMetadata implements Serializable {
   private boolean queryMapEncoded;
   private transient Type bodyType;
   private RequestTemplate template = new RequestTemplate();
+  // 表单参数，解析使用@Param注解的参数
   private List<String> formParams = new ArrayList<String>();
   private Map<Integer, Collection<String>> indexToName =
       new LinkedHashMap<Integer, Collection<String>>();

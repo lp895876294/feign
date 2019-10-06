@@ -13,20 +13,18 @@
  */
 package feign;
 
+import feign.Request.HttpMethod;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import feign.Request.HttpMethod;
+
 import static feign.Util.checkState;
 import static feign.Util.emptyToNull;
 
@@ -113,7 +111,7 @@ public interface Contract {
       int count = parameterAnnotations.length;
       for (int i = 0; i < count; i++) {
         boolean isHttpAnnotation = false;
-        // 处理每一个请求参数注解
+        // 处理每一个请求参数注解, @Param , @QueryMap , @HeaderMap 为 HttpAnnotation
         if (parameterAnnotations[i] != null) {
           isHttpAnnotation = processAnnotationsOnParameter(data, parameterAnnotations[i], i);
         }
@@ -303,7 +301,6 @@ public interface Contract {
           // 存储数字需要参数对应的
           data.indexToEncoded().put(paramIndex, paramAnnotation.encoded());
           isHttpAnnotation = true;
-          // todo 不清楚此处的参数名称有什么用途
           if (!data.template().hasRequestVariable(name)) {
             data.formParams().add(name);
           }
